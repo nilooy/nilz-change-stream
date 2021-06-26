@@ -1,8 +1,8 @@
 Package.describe({
   name: 'nilz:change-stream',
   version: '0.0.1',
-  summary: '',
-  git: '',
+  summary: 'To use mongo change stream server to publish meteor data ',
+  git: 'https://github.com/nilooy/nilz-change-stream',
   documentation: 'README.md'
 });
 

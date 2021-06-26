@@ -46,8 +46,11 @@ $set (Available starting in MongoDB 4.2)
 $unset (Available starting in MongoDB 4.2)
 ```
 
-> ### Performance
-- Try to use less
+> ### Reason: (https://docs.mongodb.com/manual/changeStreams/)
+Change streams allow applications to access real-time data changes without the complexity and risk of tailing the oplog. 
+Applications can use change streams to subscribe to all data changes on a single collection, a database, or an entire deployment, and immediately react to them. Because change streams use the aggregation framework, applications can also filter for specific changes or transform the notifications at will.
+
+
 
 
 
