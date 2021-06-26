@@ -32,7 +32,7 @@ Meteor.publishChangeStream({
 })
 ```
 
-#!important: add `fullDocument` before each fields in pipeline as example above
+# !important: add `fullDocument` before each fields in pipeline as example above
 
 ### Support only transformation, so no `$lookup` for now :(
 ```javascript
