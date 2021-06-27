@@ -109,7 +109,7 @@ export const publishChangeStream = ({ name, collection, run, pipleline = [], min
                   write: function (doc, _, cb) {
                     logHere(`change stream: ${collection._name}`,doc)
                     // for the external data conatining id in objectId format
-                    const docId = getIdInString(doc.documentKey._id)
+                    const docId = getIdInString(doc?.documentKey?._id)
 
                     switch (doc?.operationType) {
                       case ACTIONS.INSERT: // Add the document to the list
@@ -128,7 +128,7 @@ export const publishChangeStream = ({ name, collection, run, pipleline = [], min
                   },
                 })
             );
-            
+
             sub.onStop(() => {
               // TODO: Need to check possible cases, where we might need to close the connection earlier.
               logHere(`change stream stopped for pub: ${name}`)
