@@ -129,7 +129,7 @@ export const publishChangeStream = ({ name, collection, run, pipleline = [], min
                 })
             );
 
-            sub.onStop(() => {
+            sub.onStop(function() {
               // TODO: Need to check possible cases, where we might need to close the connection earlier.
               logHere(`change stream stopped for pub: ${name}`)
               changeStream.close(); // close the connection when publishing is done
