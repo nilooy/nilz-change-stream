@@ -67,6 +67,9 @@ export const publishChangeStream = ({ name, collection, run, pipleline = [], min
     content
   })
 
+  const getIdInString = (id) =>
+     typeof id === 'string' ? id : id.toString();
+
   import stream from "stream"
 
   return Meteor.publish(name, function (args) {
@@ -77,10 +80,7 @@ export const publishChangeStream = ({ name, collection, run, pipleline = [], min
 
     // if pipeline is not passed, only then it will use run method, that should return the query
     const aggregateQuery = pipleline?.length ? pipleline : run?.(args, rawCollection, sub) || [];
-    logHere('@=> Pipeline =>', aggregateQuery)
-
-    // Start watching the data with the pipeline
-    const changeStream = rawCollection.watch(aggregateQuery, { fullDocument: 'updateLookup' });
+    logHere('Pipeline', aggregateQuery)
 
     // Minimongo Collection name can be different than the one declared in api, the custom name can be passed via { minimongoName: String }
     const collectionName = minimongoName || collection._name
@@ -93,42 +93,57 @@ export const publishChangeStream = ({ name, collection, run, pipleline = [], min
       } // In case of any error in query, need to stop execution here.
 
       if (data?.length) // Push all the initial data to sub
-        data.forEach((item) => sub.added(collectionName, item._id, item));
-    });
+        data.forEach((item, index) => {
+          const docId = getIdInString(item._id)
+          sub.added(collectionName, docId, item);
 
-    // open the change stream pipe with node stream api
-    changeStream.stream().pipe(
-      new stream.Writable({
-        objectMode: true,
-        write: function (doc, _, cb) {
-          logHere(`change stream: ${collection._name}`,doc)
-          switch (doc?.operationType) {
-            case ACTIONS.INSERT: // Add the document to the list
-              sub.added(collectionName, doc.documentKey._id, doc.fullDocument);
-              break;
-            case ACTIONS.UPDATE: // Update the document by id
-              sub.changed(collectionName, doc.documentKey._id, doc.fullDocument);
-              break;
-            case ACTIONS.DELETE: // Remove the document from list
-              sub.removed(collectionName, doc.documentKey._id)
-              break;
+          if(index === (data.length -1)){
+            // Start watching the data with the pipeline
+            const changeStream = rawCollection.watch(aggregateQuery, { fullDocument: 'updateLookup' });
 
-            default: cb();
+            sub.ready();
+            // open the change stream pipe with node stream api
+            changeStream.stream().pipe(
+                new stream.Writable({
+                  objectMode: true,
+                  write: function (doc, _, cb) {
+                    logHere(`change stream: ${collection._name}`,doc)
+                    // for the external data conatining id in objectId format
+                    const docId = getIdInString(doc.documentKey._id)
+
+                    switch (doc?.operationType) {
+                      case ACTIONS.INSERT: // Add the document to the list
+                        sub.added(collectionName, docId, doc.fullDocument);
+                        break;
+                      case ACTIONS.UPDATE: // Update the document by id
+                        sub.changed(collectionName, docId, doc.fullDocument);
+                        break;
+                      case ACTIONS.DELETE: // Remove the document from list
+                        sub.removed(collectionName, docId)
+                        break;
+
+                      default: cb();
+                    }
+                    cb();
+                  },
+                })
+            );
+            
+            sub.onStop(() => {
+              // TODO: Need to check possible cases, where we might need to close the connection earlier.
+              logHere(`change stream stopped for pub: ${name}`)
+              changeStream.close(); // close the connection when publishing is done
+            });
           }
-          cb();
-        },
-      })
-    );
-
-    sub.onStop(() => {
-      // TODO: Need to check possible cases, where we might need to close the connection earlier.
-      logHere(`change stream stopped for pub: ${name}`)
-      changeStream.close(); // close the connection when publishing is done
+        });
     });
 
-    sub.ready();
+
+
   });
 };
+
+
 
 // backwards compatibility
 Meteor.publishChangeStream = publishChangeStream;
